@@ -7,8 +7,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 const authRouter = require("./routes/auth.router");
+const accountRouter = require("./routes/account.router");
 
 app.use("/auth", authRouter);
+app.use("/account", accountRouter);
 
 const PORT = process.env.PORT || 3000;
 
