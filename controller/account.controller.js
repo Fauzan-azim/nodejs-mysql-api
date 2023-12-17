@@ -38,6 +38,33 @@ const accountController = {
       return res.status(500).json({ error: "Internal Server Error" });
     }
   },
+
+  getAccount: async (req, res) => {
+    const userId = req.params.id;
+
+    try {
+      const userQuery =
+        "SELECT id, email, fullname, password FROM users WHERE id = ?";
+      const [user] = await query(userQuery, [userId]);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Omit the password field for security reasons
+      const userData = {
+        id: user.id,
+        email: user.email,
+        fullname: user.fullname,
+        password: user.password,
+      };
+
+      return res.json(userData);
+    } catch (error) {
+      console.error("Error during account retrieval:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  },
 };
 
 module.exports = accountController;
