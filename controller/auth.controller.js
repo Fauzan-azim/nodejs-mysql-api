@@ -1,65 +1,62 @@
-const pool = require("../database/index")
-const bcrypt = require('bcrypt')
-const jwt = require('jsonwebtoken')
+const query = require("../database/index");
+const bcrypt = require("bcrypt");
 
 const authController = {
-    register: async (req, res) => {
-        try {
-            const { email, password, name } = req.body
-            const [user, ] = await pool.query("select * from users where email = ?", [email])
-            if (user[0]) return res.json({ error: "Email already exists!" })
-            
+  register: async (req, res) => {
+    const { fullname, email, password, no_hp } = req.body;
 
-            const hash = await bcrypt.hash(password, 10)
+    if (!fullname || !email || !password || !no_hp) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
 
-            const sql = "insert into users (email, password, name) values (?, ?, ?)"
-            const [rows, fields] = await pool.query(sql, [email, hash, name])
+    try {
+      const emailExistsQuery = "SELECT * FROM users WHERE email = ?";
+      const emailExists = await query(emailExistsQuery, [email]);
 
-            if (rows.affectedRows) {
-                return res.json({ message: "Ok" })
-            } else {
-                return res.json({ error: "Error" })
-            }
-            
-        } catch (error) {
-            console.log(error)
-            res.json({
-                error: error.message
-            })
+      if (emailExists.length > 0) {
+        return res.status(400).json({ error: "Email is already registered" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const registerQuery =
+        "INSERT INTO users (fullname, email, password, no_hp) VALUES (?, ?, ?, ?)";
+      await query(registerQuery, [fullname, email, hashedPassword, no_hp]);
+
+      return res.json({ success: true, message: "Registration successful" });
+    } catch (error) {
+      console.error("Error during registration:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  },
+  login: async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    try {
+      const userQuery = "SELECT * FROM users WHERE email = ?";
+      const user = await query(userQuery, [email]);
+
+      if (user.length > 0) {
+        // Compare the provided password with the hashed password in the database
+        const passwordMatch = await bcrypt.compare(password, user[0].password);
+
+        if (passwordMatch) {
+          return res.json({ success: true, user: user[0] });
+        } else {
+          return res.status(401).json({ error: "Invalid email or password" });
         }
-    },
-    login: async (req, res) => {
-        try {
-            const { email, password } = req.body
-            const [user, ] = await pool.query("select * from users where email = ?", [email])
-            if (!user[0]) return res.json({ error: "Invalid email!" })
-            
-            const { password: hash, id, name } = user[0]
+      } else {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  },
+};
 
-            const check = await bcrypt.compare(password, hash)
-
-            if (check) {
-                const accessToken = jwt.sign({ userId: id }, '3812932sjad34&*@', { expiresIn: '1h' });
-                return res.json({ 
-                    accessToken,
-                    data: { 
-                        userId: id,
-                        name,
-                        email
-                    }
-                 })
-
-            }
-
-            return res.json({ error: "Wrong password!" })
-            
-        } catch (error) {
-            console.log(error)
-            res.json({
-                error: error.message
-            })
-        }
-    },
-}
-
-module.exports = authController
+module.exports = authController;
