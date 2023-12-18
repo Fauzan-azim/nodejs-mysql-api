@@ -23,12 +23,22 @@ const authController = {
         "INSERT INTO users (fullname, email, password, no_hp) VALUES (?, ?, ?, ?)";
       await query(registerQuery, [fullname, email, hashedPassword, no_hp]);
 
-      return res.json({ success: true, message: "Registration successful" });
+      // Fetch the user data after registration
+      const getUserQuery =
+        "SELECT * FROM users WHERE email = ? AND password = ?";
+      const user = await query(getUserQuery, [email]);
+
+      return res.json({
+        success: true,
+        message: "Registration successful",
+        user: user[0],
+      });
     } catch (error) {
       console.error("Error during registration:", error);
       return res.status(500).json({ error: "Internal Server Error" });
     }
   },
+
   login: async (req, res) => {
     const { email, password } = req.body;
 
@@ -37,8 +47,8 @@ const authController = {
     }
 
     try {
-      const userQuery = "SELECT * FROM users WHERE email = ?";
-      const user = await query(userQuery, [email]);
+      const userQuery = "SELECT * FROM users WHERE email = ? AND password = ?";
+      const user = await query(userQuery, [email, password]);
 
       if (user.length > 0) {
         // Compare the provided password with the hashed password in the database
