@@ -24,8 +24,7 @@ const authController = {
       await query(registerQuery, [fullname, email, hashedPassword, no_hp]);
 
       // Fetch the user data after registration
-      const getUserQuery =
-        "SELECT * FROM users WHERE email = ? AND password = ?";
+      const getUserQuery = "SELECT * FROM users WHERE email = ?";
       const user = await query(getUserQuery, [email]);
 
       return res.json({
@@ -47,8 +46,8 @@ const authController = {
     }
 
     try {
-      const userQuery = "SELECT * FROM users WHERE email = ? AND password = ?";
-      const user = await query(userQuery, [email, password]);
+      const userQuery = "SELECT * FROM users WHERE email = ? ";
+      const user = await query(userQuery, [email]);
 
       if (user.length > 0) {
         // Compare the provided password with the hashed password in the database
